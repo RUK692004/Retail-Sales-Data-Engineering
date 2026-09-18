@@ -47,7 +47,9 @@ def raw_directory(tmp_path: Path) -> Path:
 
 
 def test_pipeline_loads_non_empty_dataframes(raw_directory: Path) -> None:
-    datasets = run_ingestion(raw_directory)
+    datasets = run_ingestion(
+        raw_directory, output_path=raw_directory / "data" / "processed"
+    )
     assert set(datasets) == set(REQUIRED_COLUMNS)
     assert all(not dataframe.empty for dataframe in datasets.values())
 
@@ -57,7 +59,7 @@ def test_pipeline_persists_validated_datasets(
 ) -> None:
     """Safe intermediate CSVs are available for disk-based transformation."""
     monkeypatch.chdir(raw_directory)
-    run_ingestion(raw_directory)
+    run_ingestion(raw_directory, output_path=raw_directory / "data" / "processed")
 
     processed_directory = raw_directory / "data" / "processed"
     for dataset_name in REQUIRED_COLUMNS:
@@ -77,20 +79,26 @@ def test_pipeline_accepts_a_project_root(
         shutil.copy(source_file, nested_raw_directory / source_file.name)
 
     monkeypatch.chdir(project_root)
-    datasets = run_ingestion(project_root)
+    datasets = run_ingestion(
+        project_root, output_path=project_root / "data" / "processed"
+    )
 
     assert set(datasets) == set(REQUIRED_COLUMNS)
     assert (project_root / "data" / "processed" / "sales_ingested.csv").is_file()
 
 
 def test_all_required_columns_are_present(raw_directory: Path) -> None:
-    datasets = run_ingestion(raw_directory)
+    datasets = run_ingestion(
+        raw_directory, output_path=raw_directory / "data" / "processed"
+    )
     for name, required_columns in REQUIRED_COLUMNS.items():
         assert required_columns.issubset(datasets[name].columns)
 
 
 def test_identifier_columns_are_numeric(raw_directory: Path) -> None:
-    datasets = run_ingestion(raw_directory)
+    datasets = run_ingestion(
+        raw_directory, output_path=raw_directory / "data" / "processed"
+    )
     assert pd.api.types.is_numeric_dtype(datasets["sales"]["store_id"])
     assert pd.api.types.is_numeric_dtype(datasets["sales"]["sku_id"])
     assert pd.api.types.is_numeric_dtype(datasets["customers"]["cust_id"])
