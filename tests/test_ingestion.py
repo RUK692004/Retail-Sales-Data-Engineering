@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from ingestion.pipeline import run_ingestion
-from ingestion.reader import load_sales
+from ingestion.reader import DataReadError, load_sales
 from ingestion.validator import REQUIRED_COLUMNS, SchemaValidationError, validate_dataframe
 
 
@@ -35,7 +35,10 @@ def raw_directory(tmp_path: Path) -> Path:
             "store_id": 1, "sku_id": 100, "stock_on_hand": 20,
             "reorder_point": 5, "safety_stock": 2,
         }]),
-        "bm_promotions.csv": pd.DataFrame([{"sku_id": 100, "discount_pct": 10}]),
+        "bm_promotions.csv": pd.DataFrame([{
+            "promo_id": 1, "promo_name": "Launch", "start_date": "2025-01-01",
+            "end_date": "2025-01-02", "discount_pct": 10, "promo_type": "Seasonal",
+        }]),
     }
     for filename, dataframe in datasets.items():
         dataframe.to_csv(tmp_path / filename, index=False)
@@ -59,6 +62,7 @@ def test_identifier_columns_are_numeric(raw_directory: Path) -> None:
     assert pd.api.types.is_numeric_dtype(datasets["sales"]["store_id"])
     assert pd.api.types.is_numeric_dtype(datasets["sales"]["sku_id"])
     assert pd.api.types.is_numeric_dtype(datasets["customers"]["cust_id"])
+    assert pd.api.types.is_numeric_dtype(datasets["promotions"]["promo_id"])
 
 
 def test_missing_file_raises_file_not_found(tmp_path: Path) -> None:
@@ -66,7 +70,27 @@ def test_missing_file_raises_file_not_found(tmp_path: Path) -> None:
         load_sales(tmp_path)
 
 
+def test_empty_file_raises_clear_read_error(tmp_path: Path) -> None:
+    (tmp_path / "bm_sales.csv").write_text("", encoding="utf-8")
+    with pytest.raises(DataReadError, match="Source file is empty"):
+        load_sales(tmp_path)
+
+
 def test_missing_required_column_raises_schema_error() -> None:
     incomplete = pd.DataFrame({"store_id": [1], "sku_id": [100]})
     with pytest.raises(SchemaValidationError, match="customer_id"):
         validate_dataframe("sales", incomplete)
+
+
+def test_non_numeric_identifier_raises_schema_error() -> None:
+    invalid_identifier = pd.DataFrame({
+        "date": ["2025-01-01"],
+        "store_id": ["one"],
+        "sku_id": [100],
+        "customer_id": [10],
+        "quantity": [1],
+        "unit_price": [5.0],
+        "total_value": [5.0],
+    })
+    with pytest.raises(SchemaValidationError, match="non-numeric"):
+        validate_dataframe("sales", invalid_identifier)

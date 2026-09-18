@@ -10,7 +10,7 @@ python -c "from ingestion import run_ingestion; print(run_ingestion().keys())"
 python -m pytest tests/test_ingestion.py
 ```
 
-The default input folder is `data/raw`. It must contain all six `bm_*.csv` files. The runner returns a dictionary containing `sales`, `customers`, `skus`, `stores`, `inventory`, and `promotions` Pandas DataFrames. Required columns and numeric identifier types are enforced; missing values and duplicates are logged in validation reports for downstream cleansing.
+The default input folder is `data/raw`. It must contain all six `bm_*.csv` files. The runner returns a dictionary containing `sales`, `customers`, `skus`, `stores`, `inventory`, and `promotions` Pandas DataFrames. Required columns and numeric identifier types are enforced; promotions uses `promo_id` (not `sku_id`) in the supplied data. Missing values and duplicates are logged in validation reports for downstream cleansing.
 
 ## Code guide
 

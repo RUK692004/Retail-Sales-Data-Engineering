@@ -26,7 +26,9 @@ REQUIRED_COLUMNS: Mapping[str, set[str]] = {
     "inventory": {
         "store_id", "sku_id", "stock_on_hand", "reorder_point", "safety_stock",
     },
-    "promotions": {"sku_id"},
+    "promotions": {
+        "promo_id", "promo_name", "start_date", "end_date", "discount_pct", "promo_type",
+    },
 }
 
 IDENTIFIER_COLUMNS: Mapping[str, tuple[str, ...]] = {
@@ -35,7 +37,7 @@ IDENTIFIER_COLUMNS: Mapping[str, tuple[str, ...]] = {
     "skus": ("sku_id",),
     "stores": ("store_id",),
     "inventory": ("store_id", "sku_id"),
-    "promotions": ("sku_id",),
+    "promotions": ("promo_id",),
 }
 
 
