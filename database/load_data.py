@@ -32,12 +32,12 @@ Optional overrides
 
 CSV files loaded
 ----------------
-    customers_ingested.csv   -> dim_customer    (upsert on cust_id)
-    skus_ingested.csv        -> dim_product     (upsert on sku_id)
-    stores_ingested.csv      -> dim_store       (upsert on store_id)
-    promotions_ingested.csv  -> dim_promotion   (upsert on promo_id)
-    sales_ingested.csv       -> fact_sales      (full-refresh -- see below)
-    inventory_ingested.csv   -> fact_inventory  (upsert on grain key)
+    customers_transformed.csv   -> dim_customer    (upsert on cust_id)
+    skus_transformed.csv        -> dim_product     (upsert on sku_id)
+    stores_transformed.csv      -> dim_store       (upsert on store_id)
+    promotions_transformed.csv  -> dim_promotion   (upsert on promo_id)
+    sales_transformed.csv       -> fact_sales      (full-refresh -- see below)
+    inventory_transformed.csv   -> fact_inventory  (upsert on grain key)
 
 Repeated-load / reload behavior
 --------------------------------
@@ -51,7 +51,7 @@ fact_inventory
     idempotent.
 
 fact_sales -- FULL REFRESH
-    sales_ingested.csv has no reliable transaction identifier, so no
+    sales_transformed.csv has no reliable transaction identifier, so no
     natural conflict key exists.  To avoid duplicate rows on re-runs the
     loader truncates fact_sales before each load (TRUNCATE ... CASCADE is
     NOT used -- referential integrity flows one way into fact_sales, not
@@ -63,12 +63,12 @@ fact_sales -- FULL REFRESH
 Order of loading
 ----------------
 1. dim_date      -- seeded by seed_data.sql (not handled here)
-2. dim_customer  -- customers_ingested.csv
-3. dim_product   -- skus_ingested.csv
-4. dim_store     -- stores_ingested.csv
-5. dim_promotion -- promotions_ingested.csv
-6. fact_sales    -- sales_ingested.csv      (full-refresh)
-7. fact_inventory-- inventory_ingested.csv  (upsert)
+2. dim_customer  -- customers_transformed.csv
+3. dim_product   -- skus_transformed.csv
+4. dim_store     -- stores_transformed.csv
+5. dim_promotion -- promotions_transformed.csv
+6. fact_sales    -- sales_transformed.csv      (full-refresh)
+7. fact_inventory-- inventory_transformed.csv  (upsert)
 """
 
 import csv
@@ -200,7 +200,7 @@ def batch_insert(cursor, sql, rows, batch_size=None):
 # ---------------------------------------------------------------------------
 
 def load_dim_customer(conn, filepath: Path):
-    """Load dim_customer from customers_ingested.csv (upsert on cust_id)."""
+    """Load dim_customer from customers_transformed.csv (upsert on cust_id)."""
     log.info("Loading dim_customer from %s ...", filepath.name)
     rows = read_csv(filepath)
 
@@ -236,7 +236,7 @@ def load_dim_customer(conn, filepath: Path):
 
 
 def load_dim_product(conn, filepath: Path):
-    """Load dim_product from skus_ingested.csv (upsert on sku_id)."""
+    """Load dim_product from skus_transformed.csv (upsert on sku_id)."""
     log.info("Loading dim_product from %s ...", filepath.name)
     rows = read_csv(filepath)
 
@@ -272,7 +272,7 @@ def load_dim_product(conn, filepath: Path):
 
 
 def load_dim_store(conn, filepath: Path):
-    """Load dim_store from stores_ingested.csv (upsert on store_id)."""
+    """Load dim_store from stores_transformed.csv (upsert on store_id)."""
     log.info("Loading dim_store from %s ...", filepath.name)
     rows = read_csv(filepath)
 
@@ -304,9 +304,9 @@ def load_dim_store(conn, filepath: Path):
 
 def load_dim_promotion(conn, filepath: Path):
     """
-    Load dim_promotion from promotions_ingested.csv (upsert on promo_id).
+    Load dim_promotion from promotions_transformed.csv (upsert on promo_id).
 
-    promotions_ingested.csv columns:
+    promotions_transformed.csv columns:
         promo_name, start_date, end_date, discount_pct, promo_type, promo_id
 
     This is the single source of truth for promotions -- there is no
@@ -379,7 +379,7 @@ def truncate_fact_sales(conn):
     Truncate fact_sales before a full reload.
 
     WHY TRUNCATE (not upsert):
-        sales_ingested.csv contains no reliable transaction identifier that
+        sales_transformed.csv contains no reliable transaction identifier that
         could serve as a natural conflict key.  Using TRUNCATE + INSERT is
         the correct full-refresh strategy: it avoids duplicates on re-runs
         without requiring an invented key.
@@ -406,7 +406,7 @@ def truncate_fact_sales(conn):
 
 def load_fact_sales(conn, filepath: Path):
     """
-    Load fact_sales from sales_ingested.csv.
+    Load fact_sales from sales_transformed.csv.
 
     Call truncate_fact_sales() before this function to ensure a clean
     full-refresh load with no duplicate rows.
@@ -509,7 +509,7 @@ def load_fact_sales(conn, filepath: Path):
 
 def load_fact_inventory(conn, filepath: Path):
     """
-    Load fact_inventory from inventory_ingested.csv.
+    Load fact_inventory from inventory_transformed.csv.
     Grain: store + SKU + snapshot_date.
     Uses upsert on the grain UNIQUE constraint -- naturally idempotent.
     """
@@ -615,18 +615,18 @@ def main():
 
     try:
         # --- Dimensions (upsert -- safe to re-run in any order after dim_date) ---
-        load_dim_customer(conn,  INPUT_DIR / "customers_ingested.csv")
-        load_dim_product(conn,   INPUT_DIR / "skus_ingested.csv")
-        load_dim_store(conn,     INPUT_DIR / "stores_ingested.csv")
-        load_dim_promotion(conn, INPUT_DIR / "promotions_ingested.csv")
+        load_dim_customer(conn,  INPUT_DIR / "customers_transformed.csv")
+        load_dim_product(conn,   INPUT_DIR / "skus_transformed.csv")
+        load_dim_store(conn,     INPUT_DIR / "stores_transformed.csv")
+        load_dim_promotion(conn, INPUT_DIR / "promotions_transformed.csv")
 
         # --- Facts ---
         # fact_sales: full-refresh (truncate then insert)
         truncate_fact_sales(conn)
-        load_fact_sales(conn,    INPUT_DIR / "sales_ingested.csv")
+        load_fact_sales(conn,    INPUT_DIR / "sales_transformed.csv")
 
         # fact_inventory: upsert on grain key
-        load_fact_inventory(conn, INPUT_DIR / "inventory_ingested.csv")
+        load_fact_inventory(conn, INPUT_DIR / "inventory_transformed.csv")
 
     except Exception as exc:
         conn.rollback()
