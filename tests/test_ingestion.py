@@ -1,6 +1,7 @@
 """Tests for the ingestion package."""
 
 from pathlib import Path
+import shutil
 
 import pandas as pd
 import pytest
@@ -49,6 +50,37 @@ def test_pipeline_loads_non_empty_dataframes(raw_directory: Path) -> None:
     datasets = run_ingestion(raw_directory)
     assert set(datasets) == set(REQUIRED_COLUMNS)
     assert all(not dataframe.empty for dataframe in datasets.values())
+
+
+def test_pipeline_persists_validated_datasets(
+    raw_directory: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Safe intermediate CSVs are available for disk-based transformation."""
+    monkeypatch.chdir(raw_directory)
+    run_ingestion(raw_directory)
+
+    processed_directory = raw_directory / "data" / "processed"
+    for dataset_name in REQUIRED_COLUMNS:
+        saved_file = processed_directory / f"{dataset_name}_ingested.csv"
+        assert saved_file.is_file()
+        assert not pd.read_csv(saved_file).empty
+
+
+def test_pipeline_accepts_a_project_root(
+    raw_directory: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A project root is resolved to its nested data/raw source directory."""
+    project_root = tmp_path / "project"
+    nested_raw_directory = project_root / "data" / "raw"
+    nested_raw_directory.mkdir(parents=True)
+    for source_file in raw_directory.glob("*.csv"):
+        shutil.copy(source_file, nested_raw_directory / source_file.name)
+
+    monkeypatch.chdir(project_root)
+    datasets = run_ingestion(project_root)
+
+    assert set(datasets) == set(REQUIRED_COLUMNS)
+    assert (project_root / "data" / "processed" / "sales_ingested.csv").is_file()
 
 
 def test_all_required_columns_are_present(raw_directory: Path) -> None:
