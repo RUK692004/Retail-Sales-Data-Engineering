@@ -548,8 +548,8 @@ def run_transformation_pipeline(
     dict[str, dict]
         Validation report keyed by dataset name.
     """
-    in_dir  = input_dir  or INPUT_DIR
-    out_dir = output_dir or OUTPUT_DIR
+    in_dir  = Path(input_dir)  if input_dir  else INPUT_DIR
+    out_dir = Path(output_dir) if output_dir else OUTPUT_DIR
 
     logger.info("Retail Sales Transformation Pipeline — starting")
     logger.info("Input  : %s", in_dir)
