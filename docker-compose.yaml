@@ -135,6 +135,30 @@ services:
       start_period: 5s
     restart: always
 
+  # FastAPI backend for the dashboard frontend — reads the same warehouse
+  # DB the Airflow pipeline loads into. Same DB_* env vars as the Airflow
+  # containers above (x-airflow-common), just for this one service since
+  # it doesn't need any of the other Airflow-specific config.
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DB_HOST: warehouse-postgres
+      DB_PORT: '5432'
+      DB_NAME: retail_sales_dw
+      DB_USER: warehouse
+      DB_PASSWORD: ${WAREHOUSE_DB_PASSWORD:-warehouse}
+    volumes:
+      # Read-only: /api/data-quality/* reconciles fact_sales against the
+      # source CSV load_database read from (row counts, business keys).
+      - ${AIRFLOW_PROJ_DIR:-.}/data/transformed:/app/data/transformed:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      warehouse-postgres:
+        condition: service_healthy
+    restart: always
+
   airflow-apiserver:
     <<: *airflow-common
     command: api-server
