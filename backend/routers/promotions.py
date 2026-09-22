@@ -16,6 +16,7 @@ sits relative to the data's own timeline.
 """
 from fastapi import APIRouter, Query
 from db import get_latest_sale_date, query, query_one
+from filters import clean_filter
 
 router = APIRouter()
 
@@ -34,9 +35,10 @@ STATUS_CASE = """
 def list_promotions(
     page: int = Query(1, ge=1),
     pageSize: int = Query(10, ge=1, le=100),
-    status: str | None = Query(None, pattern="^(ACTIVE|UPCOMING|EXPIRED)$"),
+    status: str | None = None,
 ):
     offset = (page - 1) * pageSize
+    status = clean_filter(status)
     latest_date = get_latest_sale_date()
 
     where = ["1=1"]

@@ -6,6 +6,7 @@ pick the most recent snapshot_date_key for each combination.
 """
 from fastapi import APIRouter, Query
 from db import query, query_one
+from filters import clean_filter
 
 router = APIRouter()
 
@@ -16,9 +17,11 @@ def list_inventory(
     pageSize: int = Query(10, ge=1, le=100),
     search: str | None = None,
     storeId: str | None = None,
-    status: str | None = Query(None, pattern="^(IN_STOCK|LOW_STOCK|OUT_OF_STOCK)$"),
+    status: str | None = None,
 ):
     offset = (page - 1) * pageSize
+    storeId = clean_filter(storeId)
+    status = clean_filter(status)
 
     where = ["l.rn = 1"]
     params: list = []

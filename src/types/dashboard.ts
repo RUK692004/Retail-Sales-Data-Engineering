@@ -27,7 +27,7 @@ export interface SalesByCategory {
 
 export interface PipelineStatus {
   status: 'HEALTHY' | 'WARNING' | 'DEGRADED' | 'FAILED';
-  lastRunAt: string;
+  lastRunAt: string | null;
   recordsProcessedToday: number;
   errorRatePercentage: number;
 }

@@ -14,6 +14,7 @@ createdAt, and description, none of which exist in our data:
 """
 from fastapi import APIRouter, HTTPException, Query
 from db import query, query_one
+from filters import clean_filter
 
 router = APIRouter()
 
@@ -37,9 +38,11 @@ def list_products(
     pageSize: int = Query(10, ge=1, le=100),
     search: str | None = None,
     category: str | None = None,
-    status: str | None = Query(None, pattern="^(ACTIVE|DISCONTINUED|DRAFT)$"),
+    status: str | None = None,
 ):
     offset = (page - 1) * pageSize
+    category = clean_filter(category)
+    status = clean_filter(status)
 
     where = ["1=1"]
     params: list = []

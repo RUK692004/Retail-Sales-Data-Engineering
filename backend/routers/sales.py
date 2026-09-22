@@ -11,6 +11,7 @@ silently treating channel and payment method as the same thing.
 """
 from fastapi import APIRouter, Query
 from db import query, query_one
+from filters import clean_filter
 
 router = APIRouter()
 
@@ -35,6 +36,8 @@ def list_sales(
 ):
     sort_col = SORT_COLUMNS.get(sortBy, SORT_COLUMNS["saleDate"])
     offset = (page - 1) * pageSize
+    storeId = clean_filter(storeId)
+    category = clean_filter(category)
 
     where = ["1=1"]
     params: list = []

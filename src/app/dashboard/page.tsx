@@ -93,7 +93,9 @@ export default function DashboardPage() {
               <span>
                 Last ETL Batch:{' '}
                 <span className="font-mono text-slate-200">
-                  {new Date(data.pipelineStatus.lastRunAt).toLocaleTimeString()}
+                  {data.pipelineStatus.lastRunAt
+                    ? new Date(data.pipelineStatus.lastRunAt).toLocaleTimeString()
+                    : 'Never run'}
                 </span>
               </span>
             </div>

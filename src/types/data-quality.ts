@@ -34,7 +34,7 @@ export interface DataQualityIssue {
 
 export interface DataQualitySummary {
   pipelineStatus: 'HEALTHY' | 'WARNING' | 'DEGRADED' | 'FAILED';
-  lastRunTimestamp: string;
+  lastRunTimestamp: string | null;
   totalRecordsProcessed: number;
   totalValidRecords: number;
   totalInvalidRecords: number;

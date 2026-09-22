@@ -181,7 +181,11 @@ export default function DataQualityPage() {
                 <KpiCard
                   title="Pipeline Status"
                   value={dqSummary.pipelineStatus}
-                  subtitle={`Last run: ${new Date(dqSummary.lastRunTimestamp).toLocaleTimeString()}`}
+                  subtitle={`Last run: ${
+                    dqSummary.lastRunTimestamp
+                      ? new Date(dqSummary.lastRunTimestamp).toLocaleTimeString()
+                      : 'Never run'
+                  }`}
                   icon={Activity}
                   variant="default"
                 />

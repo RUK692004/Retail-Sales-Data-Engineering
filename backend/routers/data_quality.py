@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Query
 
 from db import query_one
+from filters import clean_filter
 from quality_checks import run_all_checks
 
 router = APIRouter()
@@ -56,9 +57,11 @@ def data_quality_issues(
     page: int = Query(1, ge=1),
     pageSize: int = Query(10, ge=1, le=100),
     search: str | None = None,
-    category: str | None = Query(None, pattern="^(SCHEMA|NULL_CHECK|DUPLICATE|CUSTOMER_FK|SKU_FK|DATA_TYPE)$"),
-    severity: str | None = Query(None, pattern="^(CRITICAL|WARNING|INFO)$"),
+    category: str | None = None,
+    severity: str | None = None,
 ):
+    category = clean_filter(category)
+    severity = clean_filter(severity)
     checks = run_all_checks()
     now = datetime.now(timezone.utc).isoformat()
 

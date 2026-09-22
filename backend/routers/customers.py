@@ -17,6 +17,7 @@ aggregates from fact_sales, joined on customer_key.
 """
 from fastapi import APIRouter, Query
 from db import query, query_one
+from filters import clean_filter
 
 router = APIRouter()
 
@@ -26,9 +27,10 @@ def list_customers(
     page: int = Query(1, ge=1),
     pageSize: int = Query(10, ge=1, le=100),
     search: str | None = None,
-    loyaltyTier: str | None = Query(None, pattern="^(PLATINUM|GOLD|SILVER|BRONZE)$"),
+    loyaltyTier: str | None = None,
 ):
     offset = (page - 1) * pageSize
+    loyaltyTier = clean_filter(loyaltyTier)
 
     where = ["1=1"]
     params: list = []

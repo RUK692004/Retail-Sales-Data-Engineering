@@ -28,6 +28,11 @@ export const NAVIGATION_ITEMS = [
 
 export function Sidebar({ className = '' }: { className?: string }) {
   const pathname = usePathname();
+  // Same condition MSWProvider actually uses to decide whether to start the
+  // mock worker — this badge used to be hardcoded text that never checked
+  // anything, so it always said "MSW Mock API — Active" regardless of mode.
+  const mswEnabled = process.env.NEXT_PUBLIC_ENABLE_MSW !== 'false';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
 
   return (
     <aside
@@ -79,14 +84,30 @@ export function Sidebar({ className = '' }: { className?: string }) {
       <div className="p-4 border-t border-slate-800 bg-slate-950/50 text-xs">
         <div className="flex items-center justify-between text-slate-400 mb-2">
           <span className="flex items-center gap-1.5 font-mono text-[11px]">
-            <Database className="w-3.5 h-3.5 text-emerald-400" /> Mode: MSW Mock API
+            <Database className={`w-3.5 h-3.5 ${mswEnabled ? 'text-emerald-400' : 'text-blue-400'}`} />
+            Mode: {mswEnabled ? 'MSW Mock API' : 'FastAPI Backend'}
           </span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800">
+          <span
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+              mswEnabled
+                ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                : 'bg-blue-950 text-blue-300 border-blue-800'
+            }`}
+          >
             Active
           </span>
         </div>
         <p className="text-[11px] text-slate-400 leading-relaxed">
-          Ready for FastAPI backend integration via <code className="text-slate-300 bg-slate-800 px-1 py-0.5 rounded">NEXT_PUBLIC_API_URL</code>.
+          {mswEnabled ? (
+            <>
+              Ready for FastAPI backend integration via{' '}
+              <code className="text-slate-300 bg-slate-800 px-1 py-0.5 rounded">NEXT_PUBLIC_API_URL</code>.
+            </>
+          ) : (
+            <>
+              Connected to <code className="text-slate-300 bg-slate-800 px-1 py-0.5 rounded">{apiUrl}</code>.
+            </>
+          )}
         </p>
       </div>
     </aside>
